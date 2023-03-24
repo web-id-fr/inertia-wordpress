@@ -1,7 +1,7 @@
 {
     "name": "inertia-wordpress",
     "version": "1.0.0",
-    "main": "index.js",
+    "main": "wordpress-vite-plugin.ts",
     "repository": "git@github.com:web-id-fr/inertia-wordpress.git",
     "author": "Web^ID <hello@web-id.fr>",
     "license": "MIT",
