@@ -30,7 +30,10 @@ composer require web-id-fr/inertia-wordpress
 ```php
 <!DOCTYPE html>
 <html lang="fr">
-<?php $inertia = web_id_get_inertia(); ?>
+<?php $inertia = WebID\Inertia\Inertia::get([
+    'id' => 'my_app',
+    'classes' => 'bg-blue-100 font-mono p-4'
+]); ?>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -43,6 +46,17 @@ composer require web-id-fr/inertia-wordpress
 </body>
 </html>
 ```
+
+Available params for the `get` method:
+
+- `id`: The React app ID
+- `className`:
+- `publicDirectory` => default `public`
+- `ssrInputFile` => default `bootstrap/ssr/ssr.js`
+- `vite_enabled`: (bool) enable the vite build system. Default `true`
+- `vite_input`: default `src/main.jsx`
+- `vite_public_directory` => default `web/app`
+- `vite_build_directory` => default `js/dist`
 
 ### Root Template File Override
 
@@ -59,18 +73,6 @@ add_action('init', function () {
 });
 ```
 
-### Inertia Function Output Override
-
-By default the `web_id_get_inertia()['body']` function returns `<div id="app" data-page="{...inertiaJsonData}"></div>`.
-If
-you
-need to override the `div` id, you can.
-
-```php
-// Override 'id="app"' to 'id="my_app"' and add classes
-<?php $inertia = web_id_get_inertia('my_app', 'bg-blue-100 font-mono p-4'); ?>
-```
-
 ### SSR
 
 To handle SSR on your Inertia APP
@@ -79,7 +81,7 @@ To handle SSR on your Inertia APP
 - Run the node deamon  `run:ssr": "node web/app/js/dist/ssr/ssr.js`
 - If necessary, override the constant `INERTIA_SSR_URL` with the URL of the node file which
   is `'http://127.0.0.1:13714/render'` by default.
-- use the `web_id_get_inertia()` as explained earlier
+- use the `Inertia::get()` method as explained earlier
 
 ## Inertia Response Examples
 

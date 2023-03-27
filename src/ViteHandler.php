@@ -7,13 +7,13 @@
 
 declare(strict_types=1);
 
-namespace WebID\Vite;
+namespace WebID\Inertia;
 
 use Exception;
 
 const VITE_CLIENT_SCRIPT_HANDLE = 'vite-client';
 
-class WordpressVitePlugin
+class ViteHandler
 {
     private array $options;
     private string $rootDirectory;
@@ -25,15 +25,32 @@ class WordpressVitePlugin
     {
         $this->parseOptions($options);
         $this->rootDirectory = str_replace($this->options['publicDirectory'], '', WP_CONTENT_DIR);
+
+        add_action('wp_enqueue_scripts', [$this, 'enqueueViteScripts']);
     }
 
-    /**
-     * Get manifest data
-     *
-     * @throws Exception Exception is thrown when the file doesn't exist, unreadble, or contains invalid data.
-     *
-     */
-    protected function getManifest(): void
+    public function enqueueViteScripts(): void
+    {
+        $assets = $this->registerAsset();
+        if (is_null($assets)) {
+            return;
+        }
+
+        $map = [
+            'scripts' => 'wp_enqueue_script',
+            'styles' => 'wp_enqueue_style',
+        ];
+
+        foreach ($assets as $group => $handles) {
+            $func = $map[$group];
+
+            foreach ($handles as $handle) {
+                $func($handle);
+            }
+        }
+    }
+
+    private function getManifest(): void
     {
         if (is_readable($this->rootDirectory . $this->options['hotFile'])) {
             $this->hot = true;
@@ -64,33 +81,12 @@ class WordpressVitePlugin
         $this->manifest = apply_filters('wordpress_vite_plugin__manifest', $manifest);
     }
 
-    /**
-     * Filter script tag
-     *
-     * This creates a protected function to be used as callback for the `script_loader` filter
-     * which adds `type="module"` attribute to the script tag.
-     *
-     * @param string $handle Script handle.
-     *
-     * @return void
-     *
-     */
-    protected function filterScriptTag(string $handle): void
+    private function filterScriptTag(string $handle): void
     {
         add_filter('script_loader_tag', fn(...$args) => $this->setScriptTypeAttribute($handle, ...$args), 10, 3);
     }
 
-    /**
-     * Add `type="module"` to a script tag
-     *
-     * @param string $target_handle Handle of the script being targeted by the filter callback.
-     * @param string $tag Original script tag.
-     * @param string $handle Handle of the script that's currently being filtered.
-     *
-     * @return string Script tag with attribute `type="module"` added.
-     *
-     */
-    protected function setScriptTypeAttribute(string $target_handle, string $tag, string $handle): string
+    private function setScriptTypeAttribute(string $target_handle, string $tag, string $handle): string
     {
         if ($target_handle !== $handle) {
             return $tag;
@@ -112,38 +108,18 @@ class WordpressVitePlugin
         return $tag;
     }
 
-    /**
-     * Generate development asset src
-     *
-     * @param string $entry Asset entry name.
-     *
-     * @return string
-     *
-     */
-    protected function hotAsset(string $entry): string
+    private function hotAsset(string $entry): string
     {
         return sprintf('%s/%s', untrailingslashit($this->url), trim($entry));
     }
 
-    /**
-     * Register vite client script
-     *
-     * @return void
-     *
-     */
-    protected function registerViteClientScript(): void
+    private function registerViteClientScript(): void
     {
         wp_register_script(VITE_CLIENT_SCRIPT_HANDLE, $this->hotAsset('@vite/client'), [], null);
         $this->filterScriptTag(VITE_CLIENT_SCRIPT_HANDLE);
     }
 
-    /**
-     * Register react refresh script preamble
-     *
-     * @return void
-     *
-     */
-    protected function registerReactRefreshScriptPreamble(): void
+    private function registerReactRefreshScriptPreamble(): void
     {
         $script = sprintf(
             <<< EOS
@@ -159,13 +135,7 @@ class WordpressVitePlugin
         wp_add_inline_script(VITE_CLIENT_SCRIPT_HANDLE, $script);
     }
 
-    /**
-     * Load development asset
-     *
-     * @return array|null Array containing registered scripts or NULL if the none was registered.
-     *
-     */
-    protected function loadDevelopmentAsset(): ?array
+    private function loadDevelopmentAsset(): ?array
     {
         $this->registerViteClientScript();
 
@@ -198,13 +168,7 @@ class WordpressVitePlugin
         return apply_filters('wordpress_vite_plugin__development_assets', $assets, $this->manifest, $this->options);
     }
 
-    /**
-     * Load build asset
-     *
-     * @return array|null Array containing registered scripts & styles or NULL if there was an error.
-     *
-     */
-    protected function loadBuildAsset(): ?array
+    private function loadBuildAsset(): ?array
     {
         if (!isset($this->manifest[$this->options['input']])) {
             if (defined('WP_DEBUG') && WP_DEBUG) {
@@ -237,28 +201,16 @@ class WordpressVitePlugin
             }
         }
 
-        /**
-         * Filter registered build assets
-         *
-         * @param array $assets Registered assets.
-         * @param object $manifest Manifest object.
-         * @param array $options Enqueue options.
-         */
         return apply_filters('wordpress_vite_plugin__build_assets', $assets, $this->manifest, $this->options);
     }
 
-    /**
-     * Parse register/enqueue options
-     *
-     * @param array $options Array of options.
-     *
-     */
-    protected function parseOptions(array $options): void
+    private function parseOptions(array $options): void
     {
         $defaults = [
             'input' => null,
             'publicDirectory' => 'public',
             'buildDirectory' => 'build',
+            'ssrOutputDirectory' => 'public/build/ssr',
             'reactRefresh' => true,
             'handle' => 'wordpress-vite-plugin',
         ];
@@ -269,11 +221,7 @@ class WordpressVitePlugin
         $this->options = $parsed;
     }
 
-    /**
-     * Prepare asset url
-     *
-     */
-    protected function prepareAssetUrl(): void
+    private function prepareAssetUrl(): void
     {
         if ($this->hot) {
             $this->url = file_get_contents($this->rootDirectory . $this->options['hotFile']);
@@ -282,15 +230,7 @@ class WordpressVitePlugin
         }
     }
 
-    /**
-     * Register asset
-     *
-     * @return array|null
-     * @see loadDevelopmentAsset
-     * @see loadBuildAsset
-     *
-     */
-    public function registerAsset(): ?array
+    private function registerAsset(): ?array
     {
         try {
             $this->getManifest();
@@ -306,39 +246,5 @@ class WordpressVitePlugin
             ? $this->loadDevelopmentAsset()
             : $this->loadBuildAsset();
     }
-}
 
-/**
- * Enqueue asset
- *
- * @param array $options Enqueue options.
- *
- * @return bool
- *
- * @see registerAsset
- *
- */
-function enqueue_asset(array $options): bool
-{
-    $plugin = new WordpressVitePlugin($options);
-    $assets = $plugin->registerAsset();
-
-    if (is_null($assets)) {
-        return false;
-    }
-
-    $map = [
-        'scripts' => 'wp_enqueue_script',
-        'styles' => 'wp_enqueue_style',
-    ];
-
-    foreach ($assets as $group => $handles) {
-        $func = $map[$group];
-
-        foreach ($handles as $handle) {
-            $func($handle);
-        }
-    }
-
-    return true;
 }
