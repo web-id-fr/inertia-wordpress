@@ -22,7 +22,7 @@ class Inertia
 
     public static function render(string $component, array $props = []): void
     {
-        global $web_id_inertia_page;
+        global $webIdInertiaPage;
 
         self::setRequest();
 
@@ -30,7 +30,7 @@ class Inertia
         self::setComponent($component);
         self::setProps($props);
 
-        $web_id_inertia_page = [
+        $webIdInertiaPage = [
             'url' => self::$url,
             'props' => self::$props,
             'version' => self::$version,
@@ -40,10 +40,76 @@ class Inertia
         if (InertiaHeaders::inRequest()) {
             InertiaHeaders::addToResponse();
 
-            wp_send_json($web_id_inertia_page);
+            wp_send_json($webIdInertiaPage);
         }
 
         require_once get_stylesheet_directory() . '/' . self::$root_view;
+    }
+
+    public static function get(array $options): null|array
+    {
+        $defaults = [
+            // Vite
+            'vite_enabled' => true,
+            'vite_input' => 'src/main.jsx',
+            'vite_public_directory' => 'web/app',
+            'vite_build_directory' => 'js/dist',
+
+            // Inertia
+            'id' => 'app',
+            'className' => '',
+            'publicDirectory' => 'public',
+            'ssrInputFile' => 'bootstrap/ssr/ssr.js',
+        ];
+        $options = wp_parse_args($options, $defaults);
+
+        if ($options['vite_enabled']) {
+            new ViteHandler([
+                'input' => $options['vite_input'],
+                'publicDirectory' => $options['vite_public_directory'],
+                'buildDirectory' => $options['vite_build_directory'],
+            ]);
+        }
+
+        $rootDirectory = str_replace($options['publicDirectory'], '', WP_CONTENT_DIR);
+
+        global $webIdInertiaPage;
+        if (!isset($webIdInertiaPage)) {
+            return null;
+        }
+
+        $ssrJsExists = file_exists(realpath(sprintf('%s/%s', $rootDirectory, $options['ssrInputFile'])));
+        $headers = get_headers(INERTIA_SSR_URL);
+        $ssrServerIsRunning = (bool) strpos($headers[0], '200');
+
+        if ($ssrJsExists && $ssrServerIsRunning) {
+            $res = wp_remote_post(INERTIA_SSR_URL, [
+                'headers' => [
+                    'content-type' => 'application/json',
+                ],
+                'body' => wp_json_encode($webIdInertiaPage),
+                'data_format' => 'body',
+            ]);
+            $body = wp_remote_retrieve_body($res);
+            $response = json_decode($body, true);
+        } else {
+            $page = htmlspecialchars(
+                json_encode($webIdInertiaPage),
+                ENT_QUOTES,
+                'UTF-8',
+                true
+            );
+
+            $response = [
+                'head' => [],
+                'body' => sprintf('<div id="%s" class="%s" data-page="%s"></div>', $options['id'], $options['classes'], $page)
+            ];
+        }
+
+        return [
+            'head' => implode("\n", $response['head']),
+            'body' => $response['body'],
+        ];
     }
 
     public static function setRootView(string $name): void

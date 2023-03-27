@@ -2,7 +2,9 @@
 
 The unofficial [Inertia.js](https://inertiajs.com) server-side adapter for WordPress.
 
-This is a fork form BoxyBird (Andrew Rhyand) Work https://github.com/boxybird/inertia-wordpress
+This is a fork form BoxyBird (Andrew Rhyand) work https://github.com/boxybird/inertia-wordpress
+
+It also includes code from Kucrut (Dzikri Aziz) work https://github.com/kucrut/vite-for-wp
 
 It adds [SSR](#ssr) support and requires PHP 8.2. See [Changelog](#changelog) section for more information
 
@@ -14,15 +16,6 @@ Install the package via composer.
 composer require web-id-fr/inertia-wordpress
 ```
 
-## Inertia Docs
-
-- Links: https://inertiajs.com/links
-- Pages: https://inertiajs.com/pages
-- Requests: https://inertiajs.com/requests
-- Shared Data: https://inertiajs.com/shared-data
-- Asset Versioning: https://inertiajs.com/asset-versioning
-- Partial Reloads: https://inertiajs.com/partial-reloads
-
 ## Root Template Example
 
 > Location: /wp-content/themes/your-theme/app.php
@@ -30,7 +23,10 @@ composer require web-id-fr/inertia-wordpress
 ```php
 <!DOCTYPE html>
 <html lang="fr">
-<?php $inertia = web_id_get_inertia(); ?>
+<?php $inertia = WebID\Inertia\Inertia::get([
+    'id' => 'my_app',
+    'classes' => 'bg-blue-100 font-mono p-4'
+]); ?>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -43,6 +39,17 @@ composer require web-id-fr/inertia-wordpress
 </body>
 </html>
 ```
+
+Available params for the `get` method:
+
+- `id`: The React app ID
+- `className`:
+- `publicDirectory` => default `public`
+- `ssrInputFile` => default `bootstrap/ssr/ssr.js`
+- `vite_enabled`: (bool) enable the vite build system. Default `true`
+- `vite_input`: default `src/main.jsx`
+- `vite_public_directory` => default `web/app`
+- `vite_build_directory` => default `js/dist`
 
 ### Root Template File Override
 
@@ -59,18 +66,6 @@ add_action('init', function () {
 });
 ```
 
-### Inertia Function Output Override
-
-By default the `web_id_get_inertia()['body']` function returns `<div id="app" data-page="{...inertiaJsonData}"></div>`.
-If
-you
-need to override the `div` id, you can.
-
-```php
-// Override 'id="app"' to 'id="my_app"' and add classes
-<?php $inertia = web_id_get_inertia('my_app', 'bg-blue-100 font-mono p-4'); ?>
-```
-
 ### SSR
 
 To handle SSR on your Inertia APP
@@ -79,7 +74,7 @@ To handle SSR on your Inertia APP
 - Run the node deamon  `run:ssr": "node web/app/js/dist/ssr/ssr.js`
 - If necessary, override the constant `INERTIA_SSR_URL` with the URL of the node file which
   is `'http://127.0.0.1:13714/render'` by default.
-- use the `web_id_get_inertia()` as explained earlier
+- use the `Inertia::get()` method as explained earlier
 
 ## Inertia Response Examples
 
@@ -143,25 +138,6 @@ Inertia::render('Posts/Index', [
     'pagination' => $pagination,
 ]);
 ```
-
-### Quick Note
-
-You may be wondering what this master line above does:
-
-```php
-'content' => apply_filters('the_content', get_the_content(null, false, $post->ID));
-```
-
-Because we can't use the WordPress function `the_content()` outside of a traditional theme template setup, we need to
-use `get_the_content()` instead. However, we first need to apply the filters other plugins and WordPress have
-registered.
-
-Matter of fact, we can't use any WordPress function that uses `echo`, and not `return`.
-
-But don't fret. WordPress typically offers a solution to this caveat: `get_the_title()` vs `the_title()`, `get_the_ID()`
-vs `the_ID()`, and so on...
-
-Reference: https://developer.wordpress.org/reference/functions/
 
 ## Shared data
 
@@ -250,3 +226,4 @@ Init fork from https://github.com/boxybird/inertia-wordpress
 
 - Requires PHP 8.2
 - Publishes autoload files so it can go in plugins directory without running commands
+- Includes Vite support from Kucrut plugin
