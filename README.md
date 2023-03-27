@@ -2,7 +2,9 @@
 
 The unofficial [Inertia.js](https://inertiajs.com) server-side adapter for WordPress.
 
-This is a fork form BoxyBird (Andrew Rhyand) Work https://github.com/boxybird/inertia-wordpress
+This is a fork form BoxyBird (Andrew Rhyand) work https://github.com/boxybird/inertia-wordpress
+
+It also includes code from Kucrut (Dzikri Aziz) work https://github.com/kucrut/vite-for-wp
 
 It adds [SSR](#ssr) support and requires PHP 8.2. See [Changelog](#changelog) section for more information
 
@@ -13,15 +15,6 @@ Install the package via composer.
 ```
 composer require web-id-fr/inertia-wordpress
 ```
-
-## Inertia Docs
-
-- Links: https://inertiajs.com/links
-- Pages: https://inertiajs.com/pages
-- Requests: https://inertiajs.com/requests
-- Shared Data: https://inertiajs.com/shared-data
-- Asset Versioning: https://inertiajs.com/asset-versioning
-- Partial Reloads: https://inertiajs.com/partial-reloads
 
 ## Root Template Example
 
@@ -146,25 +139,6 @@ Inertia::render('Posts/Index', [
 ]);
 ```
 
-### Quick Note
-
-You may be wondering what this master line above does:
-
-```php
-'content' => apply_filters('the_content', get_the_content(null, false, $post->ID));
-```
-
-Because we can't use the WordPress function `the_content()` outside of a traditional theme template setup, we need to
-use `get_the_content()` instead. However, we first need to apply the filters other plugins and WordPress have
-registered.
-
-Matter of fact, we can't use any WordPress function that uses `echo`, and not `return`.
-
-But don't fret. WordPress typically offers a solution to this caveat: `get_the_title()` vs `the_title()`, `get_the_ID()`
-vs `the_ID()`, and so on...
-
-Reference: https://developer.wordpress.org/reference/functions/
-
 ## Shared data
 
 > Location: /wp-content/themes/your-theme/functions.php
@@ -252,3 +226,4 @@ Init fork from https://github.com/boxybird/inertia-wordpress
 
 - Requires PHP 8.2
 - Publishes autoload files so it can go in plugins directory without running commands
+- Includes Vite support from Kucrut plugin
