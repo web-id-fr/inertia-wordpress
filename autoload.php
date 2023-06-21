@@ -50,10 +50,10 @@ class Autoloader
         }
 
         foreach ($this->prefixes[$prefix] as $base_dir) {
-            $file = $base_dir . strtolower(str_replace(array('\\', '_'), array(
+            $file = $base_dir . str_replace(array('\\', '_'), array(
                     '/',
                     '-'
-                ), $relative_class)) . '.php';
+                ), $relative_class) . '.php';
 
             if ($this->requireFile($file)) {
                 return $file;
