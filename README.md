@@ -218,6 +218,10 @@ add_action('init', function () {
 
 Init fork from https://github.com/boxybird/inertia-wordpress
 
+### [1.0.1] - 2023-06-23
+
+Fix autoload file case
+
 #### Added
 
 - SSR Support
