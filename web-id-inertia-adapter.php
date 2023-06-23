@@ -4,7 +4,7 @@
  * Plugin Name:       Web^ID Inertia Adapter
  * Plugin URI:        #
  * Description:       A WordPress adapter for Inertia.js.
- * Version:           1.0.0
+ * Version:           1.0.1
  * Author:            Web^ID
  * Author URI:        web-id.com
  * License:           GPLv2 or later
